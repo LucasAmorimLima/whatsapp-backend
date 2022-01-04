@@ -1,6 +1,8 @@
 import express from 'express'
 import mongoose from 'mongoose'
 import Messages from './dbMessage.js'
+import Pusher from 'pusher'
+import cors from 'cors'
 const app  = express()
 const port  = process.env.PORT || 9000
 
@@ -11,8 +13,43 @@ mongoose.connect(url,{
     useUnifiedTopoLogy : true
 })
 
-app.use(express.json())
+const pusher = new Pusher({
+    appId: "1325908",
+    key: "b27d01fb5230f3b665cf",
+    secret: "4986e95fa4237e4e871b",
+    cluster: "sa1",
+    useTLS: true
+  });
 
+const db = mongoose.connection
+
+db.once("open", ()=>{
+    console.log("db connected")
+
+    const msgCollection = db.collection('messagecontents')
+    const changesStream = msgCollection.watch()
+
+    changesStream.on('change',(change)=>{
+        console.log(change)
+
+        if (change.operationType === "insert") {
+            const messageDetails  = change.fullDocument
+            pusher.trigger('messages','inserted',
+            {
+                name : messageDetails.name,
+                message: messageDetails.message,
+                timestamp: messageDetails.timestamp,
+                received: messageDetails.received
+            }
+            )
+        } else {
+            console.log('Error triggering Pusher')
+        }
+    })
+})
+
+app.use(express.json())
+app.use(cors())
 
 app.get('/',(req,res)=>res.status(200).send('wello word'))
 
