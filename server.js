@@ -51,7 +51,7 @@ db.once("open", ()=>{
 app.use(express.json())
 app.use(cors())
 
-app.get('/',(req,res)=>res.status(200).send('wello word'))
+//app.get('/',(req,res)=>res.status(200).send('wello word'))
 
 
 app.post('/messages/new',(req,res)=>{
